@@ -1,11 +1,9 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import whisper
 import tempfile
 import os
 import openai
-import supabase
 from langdetect import detect
 from supabase import create_client, Client
 
@@ -29,9 +27,6 @@ class TaskResponse(BaseModel):
     task: str
     language: str
 
-# Load Whisper model once
-model = whisper.load_model("base")  # Options: tiny, base, small, medium, large
-
 @app.post("/transcribe", response_model=TaskResponse)
 async def transcribe_audio(file: UploadFile = File(...)):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp:
@@ -39,9 +34,10 @@ async def transcribe_audio(file: UploadFile = File(...)):
         temp.flush()
         audio_path = temp.name
 
-    # Step 1: Transcribe audio locally with Whisper
-    result = model.transcribe(audio_path)
-    transcript = result["text"]
+    # Step 1: Transcribe using OpenAI Whisper API
+    with open(audio_path, "rb") as audio_file:
+        whisper_response = openai.Audio.transcribe("whisper-1", audio_file)
+        transcript = whisper_response["text"]
 
     # Step 2: Detect language
     language = detect(transcript)
