@@ -4,3 +4,4 @@ openai
 langdetect
 supabase
 python-dotenv
+python-multipart
